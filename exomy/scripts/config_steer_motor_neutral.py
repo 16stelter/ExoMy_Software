@@ -11,8 +11,8 @@ def get_steering_motor_pins():
     with open(config_filename, 'r') as file:
         param_dict = yaml.load(file, yaml.FullLoader)
     
-    if 'exomy' in param_dict:
-        param_dict = param_dict['exomy']
+    if 'motor_node' in param_dict:
+        param_dict = param_dict['motor_node']
         if 'ros__parameters' in param_dict:
             param_dict = param_dict['ros__parameters']
             for param_key, param_value in param_dict.items():
@@ -32,8 +32,8 @@ def get_steering_pwm_neutral_values():
     with open(config_filename, 'r') as file:
         param_dict = yaml.load(file, yaml.FullLoader)
 
-    if 'exomy' in param_dict:
-        param_dict = param_dict['exomy']
+    if 'motor_node' in param_dict:
+        param_dict = param_dict['motor_node']
         if 'ros__parameters' in param_dict:
             param_dict = param_dict['ros__parameters']
             for param_key, param_value in param_dict.items():
