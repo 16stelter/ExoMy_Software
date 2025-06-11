@@ -18,7 +18,7 @@ pin_dict = {
 
 }
 
-pwm = Adafruit_PCA9685.PCA9685()
+pwm = Adafruit_PCA9685.PCA9685(busnum=1)
 # For most motors a pwm frequency of 50Hz is normal
 pwm_frequency = 50.0  # Hz
 pwm.set_pwm_freq(pwm_frequency)

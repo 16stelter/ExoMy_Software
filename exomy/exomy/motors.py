@@ -48,7 +48,7 @@ class Motors():
         self.pins['steer'][self.RR] = parameters['pin_steer_rr']
 
         # PWM characteristics
-        self.pwm = Adafruit_PCA9685.PCA9685()
+        self.pwm = Adafruit_PCA9685.PCA9685(busnum=1)
         self.pwm.set_pwm_freq(50)  # Hz
 
         self.steering_pwm_neutral = [None] * 6

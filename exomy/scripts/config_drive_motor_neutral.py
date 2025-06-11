@@ -59,7 +59,7 @@ On each motor you have to turn the correction screw until the motor really stand
         exit()
 
 
-    pwm = Adafruit_PCA9685.PCA9685()
+    pwm = Adafruit_PCA9685.PCA9685(busnum=1)
 
     '''
     The drive_pwm_neutral value is determined from the exomy.yaml file.
