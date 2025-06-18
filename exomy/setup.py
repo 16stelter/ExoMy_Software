@@ -21,7 +21,6 @@ setup(
     maintainer_email='max.ehrhardt@hotmail.de',
     description='Core functionalities for the ExoMy rover',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'motor_node = exomy.motor_node:main',
