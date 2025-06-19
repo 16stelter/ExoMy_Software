@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 from exomy_msgs.msg import RoverCommand, MotorCommands
+import geometry_msgs.msg
 import rclpy
 from rclpy.node import Node
 from .rover import Rover
 
 
 class RobotNode(Node):
+    FL, FR, CL, CR, RL, RR = range(0, 6)
     def __init__(self):
         self.node_name = 'robot_node'
         super().__init__(self.node_name)
@@ -14,6 +16,12 @@ class RobotNode(Node):
             RoverCommand,
             'rover_command',
             self.joy_callback,
+            10)
+        
+        self.cmd_vel_sub = self.create_subscription(
+            geometry_msgs.msg.Twist,
+            'cmd_vel',
+            self.cmd_vel_callback,
             10)
 
         self.robot_pub = self.create_publisher(
@@ -33,6 +41,36 @@ class RobotNode(Node):
         cmds.motor_speeds = self.robot.joystickToVelocity(
             msg.vel, msg.steering)
 
+        self.robot_pub.publish(cmds)
+
+    def cmd_vel_callback(self, msg):
+        cmds = MotorCommands()
+        max_linear_speed = 1.0 # m/s
+        max_angular_speed = 1.0 # rad/s 
+        # make these parameters for tuning
+        motor_speeds = [0]*6
+        steering_angles = [0]*6
+
+        if(msg.linear.y != 0):
+            # crabwalking
+            return
+        elif(msg.linear.x != 0):
+            # ackerman steering
+            return
+        elif(msg.angular.z != 0):
+            steering_angles[self.FL] = 45
+            steering_angles[self.FR] = -45
+            steering_angles[self.RL] = -45
+            steering_angles[self.RR] = 45
+            motor_speeds[self.FL] = msg.angular.z / max_angular_speed * 100
+            motor_speeds[self.FR] = -msg.angular.z / max_angular_speed * 100
+            motor_speeds[self.CL] = msg.angular.z / max_angular_speed * 100
+            motor_speeds[self.CR] = -msg.angular.z / max_angular_speed * 100
+            motor_speeds[self.RL] = msg.angular.z / max_angular_speed * 100
+            motor_speeds[self.RR] = -msg.angular.z / max_angular_speed * 100
+
+        cmds.motor_speeds = motor_speeds
+        cmds.steering_angles = steering_angles
         self.robot_pub.publish(cmds)
 
 
