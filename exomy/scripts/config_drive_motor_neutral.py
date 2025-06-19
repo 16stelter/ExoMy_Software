@@ -27,7 +27,7 @@ def get_drive_pwm_neutral():
 
     default_value = 300
     print('The parameter drive_pwm_neutral could not be found in the exomy.yaml \n')
-    print('It was set to the default value: '+ default_value + '\n')
+    print('It was set to the default value: '+ str(default_value) + '\n')
     return default_value
 
 if __name__ == "__main__":
