@@ -4,6 +4,7 @@ import geometry_msgs.msg
 import rclpy
 from rclpy.node import Node
 from .rover import Rover
+import math
 
 
 class RobotNode(Node):
@@ -47,21 +48,40 @@ class RobotNode(Node):
         cmds = MotorCommands()
         max_linear_speed = 1.0 # m/s
         max_angular_speed = 1.0 # rad/s 
+        front_wheel_x = 0.16
+        rear_wheel_x = 0.14
+        wheel_y = 0.2
+        max_steering_angle = 60
         # make these parameters for tuning
         motor_speeds = [0]*6
-        steering_angles = [0]*6
+        motor_angles = [0]*6
 
         if(msg.linear.y != 0):
             # crabwalking
             return
         elif(msg.linear.x != 0):
             # ackerman steering
-            return
+            if(msg.angular.z == 0):
+                motor_speeds = [msg.linear.x / max_linear_speed * 100]*6
+            else:
+                R = (msg.linear.x / msg.angular.z) - wheel_y
+                motor_angles[self.FL] = math.atan(front_wheel_x, R)
+                motor_angles[self.FR] = math.atan(front_wheel_x, R)
+                motor_angles[self.CL] = math.atan(0, R)
+                motor_angles[self.CR] = math.atan(0, R)
+                motor_angles[self.RL] = math.atan(rear_wheel_x, R)
+                motor_angles[self.RR] = math.atan(rear_wheel_x, R)
+                motor_speeds[self.FL] = msg.angular.z * math.hypot(R, front_wheel_x) / max_linear_speed * 100
+                motor_speeds[self.FR] = msg.angular.z * math.hypot(R, front_wheel_x) / max_linear_speed * 100
+                motor_speeds[self.CL] = msg.angular.z * math.hypot(R, 0) / max_linear_speed * 100
+                motor_speeds[self.CR] = msg.angular.z * math.hypot(R, 0) / max_linear_speed * 100
+                motor_speeds[self.RL] = msg.angular.z * math.hypot(R, rear_wheel_x) / max_linear_speed * 100
+                motor_speeds[self.RR] = msg.angular.z * math.hypot(R, rear_wheel_x) / max_linear_speed * 100
         elif(msg.angular.z != 0):
-            steering_angles[self.FL] = 45
-            steering_angles[self.FR] = -45
-            steering_angles[self.RL] = -45
-            steering_angles[self.RR] = 45
+            motor_angles[self.FL] = 45
+            motor_angles[self.FR] = -45
+            motor_angles[self.RL] = -45
+            motor_angles[self.RR] = 45
             motor_speeds[self.FL] = msg.angular.z / max_angular_speed * 100
             motor_speeds[self.FR] = -msg.angular.z / max_angular_speed * 100
             motor_speeds[self.CL] = msg.angular.z / max_angular_speed * 100
@@ -70,7 +90,7 @@ class RobotNode(Node):
             motor_speeds[self.RR] = -msg.angular.z / max_angular_speed * 100
 
         cmds.motor_speeds = motor_speeds
-        cmds.steering_angles = steering_angles
+        cmds.motor_angles = motor_angles
         self.robot_pub.publish(cmds)
 
 
