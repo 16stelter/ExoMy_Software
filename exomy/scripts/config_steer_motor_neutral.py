@@ -154,14 +154,14 @@ ctrl+c - Exit script
             print('Current value: ' + str(pwm_neutral_value) + '\n')
             input_str = input(
                 'q-set / a-decrease pwm neutral value/ d-increase pwm neutral value\n')
-            if(input_str is 'q'):
+            if(input_str == 'q'):
                 print('PWM neutral value for ' + get_position_name(pin_name) +
                       ' has been set.\n')
                 break
-            elif(input_str is 'a'):
+            elif(input_str == 'a'):
                 print('Decreased pwm neutral value')
                 pwm_neutral_value-= 5
-            elif(input_str is 'd'):
+            elif(input_str == 'd'):
                 print('Increased pwm neutral value')
                 pwm_neutral_value += 5
         pwm_neutral_dict[pwm_neutral_name] = pwm_neutral_value
