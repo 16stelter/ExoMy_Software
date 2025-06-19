@@ -49,8 +49,8 @@ class RobotNode(Node):
         max_linear_speed = 1.0 # m/s
         max_angular_speed = 1.0 # rad/s 
         front_wheel_x = 0.16
-        rear_wheel_x = 0.14
-        wheel_y = 0.2
+        rear_wheel_x = -0.14
+        wheel_y = 0.1
         max_steering_angle = 60
         # make these parameters for tuning
         motor_speeds = [0]*6
@@ -62,32 +62,31 @@ class RobotNode(Node):
         elif(msg.linear.x != 0):
             # ackerman steering
             if(msg.angular.z == 0):
-                motor_speeds = [msg.linear.x / max_linear_speed * 100]*6
+                motor_speeds = [int(msg.linear.x / max_linear_speed * 100)]*6
             else:
-                R = (msg.linear.x / msg.angular.z) - wheel_y
-                motor_angles[self.FL] = int(math.atan(front_wheel_x, R))
-                motor_angles[self.FR] = int(math.atan(front_wheel_x, R))
-                motor_angles[self.CL] = int(math.atan(0, R))
-                motor_angles[self.CR] = int(math.atan(0, R))
-                motor_angles[self.RL] = int(math.atan(rear_wheel_x, R))
-                motor_angles[self.RR] = int(math.atan(rear_wheel_x, R))
-                motor_speeds[self.FL] = int(msg.angular.z * math.hypot(R, front_wheel_x) / max_linear_speed * 100)
-                motor_speeds[self.FR] = int(msg.angular.z * math.hypot(R, front_wheel_x) / max_linear_speed * 100)
-                motor_speeds[self.CL] = int(msg.angular.z * math.hypot(R, 0) / max_linear_speed * 100)
-                motor_speeds[self.CR] = int(msg.angular.z * math.hypot(R, 0) / max_linear_speed * 100)
-                motor_speeds[self.RL] = int(msg.angular.z * math.hypot(R, rear_wheel_x) / max_linear_speed * 100)
-                motor_speeds[self.RR] = int(msg.angular.z * math.hypot(R, rear_wheel_x) / max_linear_speed * 100)
+                R = msg.linear.x / msg.angular.z
+                theta_front_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(front_wheel_x / (R - wheel_y)))))
+                theta_front_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(front_wheel_x / (R + wheel_y)))))
+                theta_rear_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(rear_wheel_x / (R - wheel_y)))))
+                theta_rear_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(rear_wheel_x / (R + wheel_y)))))
+                motor_angles[self.FL] = int(-theta_front_in)
+                motor_angles[self.FR] = int(-theta_front_in)
+                motor_angles[self.CL] = 0
+                motor_angles[self.CR] = 0
+                motor_angles[self.RL] = int(-theta_rear_in)
+                motor_angles[self.RR] = int(-theta_rear_in)
+                motor_speeds = [int(msg.linear.x / max_linear_speed * 100)]*6
         elif(msg.angular.z != 0):
             motor_angles[self.FL] = 45
             motor_angles[self.FR] = -45
             motor_angles[self.RL] = -45
             motor_angles[self.RR] = 45
-            motor_speeds[self.FL] = int(msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.FR] = int(-msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.CL] = int(msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.CR] = int(-msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.RL] = int(msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.RR] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.FL] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.FR] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.CL] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.CR] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.RL] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.RR] = int(msg.angular.z / max_angular_speed * 100)
 
         cmds.motor_speeds = motor_speeds
         cmds.motor_angles = motor_angles
