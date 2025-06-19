@@ -49,7 +49,7 @@ class RobotNode(Node):
         max_angular_speed = 1.0 # rad/s 
         # make these parameters for tuning
         motor_speeds = [0]*6
-        steering_angles = [0]*6
+        motor_angles = [0]*6
 
         if(msg.linear.y != 0):
             # crabwalking
@@ -58,19 +58,19 @@ class RobotNode(Node):
             # ackerman steering
             return
         elif(msg.angular.z != 0):
-            steering_angles[self.FL] = 45
-            steering_angles[self.FR] = -45
-            steering_angles[self.RL] = -45
-            steering_angles[self.RR] = 45
-            motor_speeds[self.FL] = msg.angular.z / max_angular_speed * 100
-            motor_speeds[self.FR] = -msg.angular.z / max_angular_speed * 100
-            motor_speeds[self.CL] = msg.angular.z / max_angular_speed * 100
-            motor_speeds[self.CR] = -msg.angular.z / max_angular_speed * 100
-            motor_speeds[self.RL] = msg.angular.z / max_angular_speed * 100
-            motor_speeds[self.RR] = -msg.angular.z / max_angular_speed * 100
+            motor_angles[self.FL] = 45
+            motor_angles[self.FR] = -45
+            motor_angles[self.RL] = -45
+            motor_angles[self.RR] = 45
+            motor_speeds[self.FL] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.FR] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.CL] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.CR] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.RL] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.RR] = int(-msg.angular.z / max_angular_speed * 100)
 
         cmds.motor_speeds = motor_speeds
-        cmds.steering_angles = steering_angles
+        cmds.motor_angles = motor_angles
         self.robot_pub.publish(cmds)
 
 
