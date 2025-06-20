@@ -46,7 +46,7 @@ class RobotNode(Node):
 
     def cmd_vel_callback(self, msg):
         cmds = MotorCommands()
-        max_linear_speed = 1.0 # m/s
+        max_linear_speed = 0.25 # m/s
         max_angular_speed = 1.0 # rad/s 
         front_wheel_x = 0.16
         rear_wheel_x = -0.14
@@ -57,7 +57,8 @@ class RobotNode(Node):
         motor_angles = [0]*6
 
         if(msg.linear.y != 0):
-            # crabwalking
+            #crabwalking
+
             motor_angles =  [math.atan2(msg.linear.y, msg.linear.x)]* 6
             motor_speeds = [(msg.linear.x + msg.linear.y) / max_angular_speed * 100]*6
         elif(msg.linear.x != 0):
