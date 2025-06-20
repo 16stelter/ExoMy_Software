@@ -51,47 +51,52 @@ class RobotNode(Node):
         front_wheel_x = 0.16
         rear_wheel_x = -0.14
         wheel_y = 0.1
-        max_steering_angle = 60
+        max_steering_angle = 60 # for ackermann steering
         # make these parameters for tuning and calibrate
         motor_speeds = [0]*6
         motor_angles = [0]*6
 
         if(msg.linear.y != 0):
-            #crabwalking
-
-            motor_angles =  [math.atan2(msg.linear.y, msg.linear.x)]* 6
-            motor_speeds = [(msg.linear.x + msg.linear.y) / max_angular_speed * 100]*6
+            # crabwalking
+            motor_angles =  [int(math.degrees(math.atan2(msg.linear.y, abs(msg.linear.x))))]* 6
+            motor_speeds = [int(((1 if msg.linear.x >= 0 else -1) * (abs(msg.linear.x) + abs(msg.linear.y))) / max_angular_speed * 100)]*6
         elif(msg.linear.x != 0):
             # ackerman steering
             if(msg.angular.z == 0):
                 motor_speeds = [int(msg.linear.x / max_linear_speed * 100)]*6
             else:
-                R = msg.linear.x / msg.angular.z
+                R = abs(msg.linear.x) / abs(msg.angular.z)
                 theta_front_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(front_wheel_x, (R - wheel_y)))))
                 theta_front_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(front_wheel_x, (R + wheel_y)))))
                 theta_rear_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(rear_wheel_x, (R - wheel_y)))))
                 theta_rear_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(rear_wheel_x, (R + wheel_y)))))
-                motor_angles[self.FL] = int(-theta_front_in)
-                motor_angles[self.FR] = int(-theta_front_in)
-                motor_angles[self.CL] = 0
-                motor_angles[self.CR] = 0
-                motor_angles[self.RL] = int(-theta_rear_in)
-                motor_angles[self.RR] = int(-theta_rear_in)
+                if msg.angular.z > 0:
+                    motor_angles[self.FL] = int(theta_front_in)
+                    motor_angles[self.FR] = int(theta_front_out)
+                    motor_angles[self.RL] = int(theta_rear_in)
+                    motor_angles[self.RR] = int(theta_rear_out)
+                else:
+                    motor_angles[self.FL] = int(-theta_front_out)
+                    motor_angles[self.FR] = int(-theta_front_in)
+                    motor_angles[self.RL] = int(-theta_rear_out)
+                    motor_angles[self.RR] = int(-theta_rear_in)
                 motor_speeds = [int(msg.linear.x / max_linear_speed * 100)]*6
         elif(msg.angular.z != 0):
             motor_angles[self.FL] = 45
             motor_angles[self.FR] = -45
             motor_angles[self.RL] = -45
             motor_angles[self.RR] = 45
-            motor_speeds[self.FL] = int(-msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.FR] = int(msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.CL] = int(-msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.CR] = int(msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.RL] = int(-msg.angular.z / max_angular_speed * 100)
-            motor_speeds[self.RR] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.FL] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.FR] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.CL] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.CR] = int(-msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.RL] = int(msg.angular.z / max_angular_speed * 100)
+            motor_speeds[self.RR] = int(-msg.angular.z / max_angular_speed * 100)
 
+        self.get_logger().info(str(motor_angles))
         cmds.motor_speeds = motor_speeds
         cmds.motor_angles = motor_angles
+
         self.robot_pub.publish(cmds)
 
 
