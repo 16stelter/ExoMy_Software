@@ -52,23 +52,24 @@ class RobotNode(Node):
         rear_wheel_x = -0.14
         wheel_y = 0.1
         max_steering_angle = 60
-        # make these parameters for tuning
+        # make these parameters for tuning and calibrate
         motor_speeds = [0]*6
         motor_angles = [0]*6
 
         if(msg.linear.y != 0):
             # crabwalking
-            return
+            motor_angles =  [math.atan2(msg.linear.y, msg.linear.x)]* 6
+            motor_speeds = [(msg.linear.x + msg.linear.y) / max_angular_speed * 100]*6
         elif(msg.linear.x != 0):
             # ackerman steering
             if(msg.angular.z == 0):
                 motor_speeds = [int(msg.linear.x / max_linear_speed * 100)]*6
             else:
                 R = msg.linear.x / msg.angular.z
-                theta_front_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(front_wheel_x / (R - wheel_y)))))
-                theta_front_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(front_wheel_x / (R + wheel_y)))))
-                theta_rear_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(rear_wheel_x / (R - wheel_y)))))
-                theta_rear_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan(rear_wheel_x / (R + wheel_y)))))
+                theta_front_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(front_wheel_x, (R - wheel_y)))))
+                theta_front_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(front_wheel_x, (R + wheel_y)))))
+                theta_rear_in = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(rear_wheel_x, (R - wheel_y)))))
+                theta_rear_out = max(-max_steering_angle, min(max_steering_angle, math.degrees(math.atan2(rear_wheel_x, (R + wheel_y)))))
                 motor_angles[self.FL] = int(-theta_front_in)
                 motor_angles[self.FR] = int(-theta_front_in)
                 motor_angles[self.CL] = 0
