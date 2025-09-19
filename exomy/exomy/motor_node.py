@@ -23,13 +23,12 @@ class MotorNode(Node):
             'motor_commands',
             self.callback,
             10)
-        self.subscription  # prevent unused variable warning
 
         # Create motor instances
         self.motors = Motors(self.parameters)
 
         # Create watchdog timer
-        self.watchdog_timer = self.create_timer(5.0, self.watchdog)
+        # self.watchdog_timer = self.create_timer(5.0, self.watchdog)
 
         self.get_logger().info('\t{} STARTED.'.format(self.node_name.upper()))
 
@@ -102,11 +101,11 @@ class MotorNode(Node):
         self.motors.setSteering(cmds.motor_angles)
         self.motors.setDriving(cmds.motor_speeds)
 
-        self.watchdog_timer.cancel()
+        # self.watchdog_timer.cancel()
         # If this timer runs longer than the duration specified,
         # then watchdog() is called stopping the driving motors.
         # Preventing the robot to go on driving if connection is lost.
-        self.watchdog_timer = self.create_timer(2.0, self.watchdog)
+        # self.watchdog_timer = self.create_timer(2.0, self.watchdog)
 
     def watchdog(self):
         self.get_logger().info('Watchdog fired. Stopping driving motors.')

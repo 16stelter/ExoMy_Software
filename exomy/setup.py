@@ -26,6 +26,7 @@ setup(
             'motor_node = exomy.motor_node:main',
             'joystick_parser_node = exomy.joystick_parser_node:main',
             'robot_node = exomy.robot_node:main',
+            'odometry_node = exomy.odometry_node:main',
         ],
     },
 )

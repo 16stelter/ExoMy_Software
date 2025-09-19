@@ -56,10 +56,24 @@ class RobotNode(Node):
         motor_speeds = [0]*6
         motor_angles = [0]*6
 
+        msg.linear.x = max(-max_linear_speed, min(msg.linear.x, max_linear_speed))
+        msg.linear.y = max(-max_linear_speed, min(msg.linear.y, max_linear_speed))
+        msg.angular.z = max(-max_angular_speed, min(msg.angular.z, max_angular_speed))
+
+
         if(msg.linear.y != 0):
             # crabwalking
-            motor_angles =  [int(math.degrees(math.atan2(msg.linear.y, abs(msg.linear.x))))]* 6
-            motor_speeds = [int(((-1 if msg.linear.x >= 0 else 1) * (abs(msg.linear.x) + abs(msg.linear.y))) / max_angular_speed * 100)]*6
+            angle = math.atan2(msg.linear.y, msg.linear.x)
+            speed = max(-max_linear_speed, min(math.hypot(msg.linear.x, msg.linear.y), max_linear_speed))
+            if angle > math.pi/2:
+                angle -= math.pi
+                speed = -speed
+            elif angle < -math.pi/2:
+                angle += math.pi
+                speed = -speed
+            self.get_logger().info(f"cmd_vel: linear.x={msg.linear.x}, linear.y={msg.linear.y}, angular.z={msg.angular.z} => angle={math.degrees(angle)}, speed={speed}")
+            motor_speeds = [int(speed / max_linear_speed * 100)]*6
+            motor_angles = [int(math.degrees(angle))]*6
         elif(msg.linear.x != 0):
             # ackerman steering
             if(msg.angular.z == 0):
@@ -94,6 +108,7 @@ class RobotNode(Node):
             motor_speeds[self.RR] = int(msg.angular.z / max_angular_speed * 100)
 
         self.get_logger().info(str(motor_angles))
+        
         cmds.motor_speeds = motor_speeds
         cmds.motor_angles = motor_angles
 
