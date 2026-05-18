@@ -19,22 +19,27 @@ class OdometryNode(Node):
         self.declare_parameter('base_frame', 'base_link')
         self.declare_parameter('publish_rate', 20.0)
 
-        ns = self.get_parameter('namespace').get_parameter_value().string_value
         self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
         self.base_frame = self.get_parameter('base_frame').get_parameter_value().string_value
         self.publish_rate = self.get_parameter('publish_rate').get_parameter_value().double_value
+
+
+        ns = self.get_namespace()
+        if ns:
+            self.odom_frame = ns + "/" + self.odom_frame
+            self.base_frame = ns + "/" + self.base_frame
 
         self.timestamp = self.get_clock().now().to_msg()
 
 
         self.cmd_vel_sub = self.create_subscription(
-            Twist, f'{ns}/cmd_vel' if ns else 'cmd_vel', self.cmd_vel_cb, 10
+            Twist, 'cmd_vel', self.cmd_vel_cb, 10
         )
         self.imu_sub = self.create_subscription(
-            Imu, f'{ns}/imu' if ns else 'imu', self.imu_cb, 10
+            Imu, 'imu', self.imu_cb, 10
         )
         self.odom_pub = self.create_publisher(
-            Odometry, f'{ns}/odom' if ns else 'odom', 10
+            Odometry, 'odom', 10
         )
 
         self.tf_broadcaster = TransformBroadcaster(self)
