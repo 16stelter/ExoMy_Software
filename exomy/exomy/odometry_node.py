@@ -52,6 +52,8 @@ class OdometryNode(Node):
         self.dt = 1.0 / self.publish_rate
         self.timer = self.create_timer(self.dt, self.timer_cb)
 
+        self.initial_yaw = None
+
     def cmd_vel_cb(self, msg):
         self.vx = msg.linear.x
         self.vy = msg.linear.y
@@ -62,7 +64,15 @@ class OdometryNode(Node):
 
     def imu_cb(self, msg):
         q = msg.orientation
-        self.roll, self.pitch, self.yaw = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+        roll, pitch, yaw = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+
+        if self.initial_yaw is None:
+            self.initial_yaw = yaw
+
+        self.roll = roll
+        self.pitch = pitch
+        self.yaw = yaw - self.initial_yaw
+
         self.timestamp = msg.header.stamp # hack for sim time
         rclpy.logging.get_logger('odometry').debug(f'IMU orientation: roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}')
 
