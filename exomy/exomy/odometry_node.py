@@ -25,7 +25,7 @@ class OdometryNode(Node):
 
 
         ns = self.get_namespace()
-        if ns:
+        if ns and ns != "/":
             self.odom_frame = ns + "/" + self.odom_frame
             self.base_frame = ns + "/" + self.base_frame
 
