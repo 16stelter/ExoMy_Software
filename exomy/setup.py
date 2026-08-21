@@ -27,6 +27,7 @@ setup(
             'joystick_parser_node = exomy.joystick_parser_node:main',
             'robot_node = exomy.robot_node:main',
             'odometry_node = exomy.odometry_node:main',
+            'random_point_pub = exomy.random_point_pub:main',
         ],
     },
 )
