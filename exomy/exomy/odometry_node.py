@@ -2,12 +2,10 @@
 
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist, Quaternion, Vector3
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Imu
 import tf_transformations
 import numpy as np
-from tf2_ros import TransformBroadcaster
+from tf2_ros import TransformBroadcaster, Buffer, TransformListener
 from geometry_msgs.msg import TransformStamped
 
 class OdometryNode(Node):
@@ -17,99 +15,87 @@ class OdometryNode(Node):
         self.declare_parameter('namespace', '')
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_link')
+        self.declare_parameter('imu_frame', 'camera_imu_optical_frame')
         self.declare_parameter('publish_rate', 20.0)
 
         self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
         self.base_frame = self.get_parameter('base_frame').get_parameter_value().string_value
-        self.publish_rate = self.get_parameter('publish_rate').get_parameter_value().double_value
+        self.imu_frame = self.get_parameter('imu_frame').get_parameter_value().string_value
 
+        self.base_to_imu = None
+
+        self.publish_rate = self.get_parameter('publish_rate').get_parameter_value().double_value
 
         ns = self.get_namespace()
         if ns and ns != "/":
             self.odom_frame = ns + "/" + self.odom_frame
             self.base_frame = ns + "/" + self.base_frame
 
-        self.timestamp = self.get_clock().now().to_msg()
-
-
-        self.cmd_vel_sub = self.create_subscription(
-            Twist, 'cmd_vel', self.cmd_vel_cb, 10
-        )
-        self.imu_sub = self.create_subscription(
-            Imu, 'imu', self.imu_cb, 10
-        )
-        self.odom_pub = self.create_publisher(
-            Odometry, 'odom', 10
-        )
-
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        self.x = self.y = self.z = 0.0
-        self.roll = self.pitch = self.yaw = 0.0
-        self.vx = self.vy = self.vz = 0.0
-        self.vroll = self.vpitch = self.vyaw = 0.0
+        self.odom_sub = self.create_subscription(Odometry, 'odomimu', self.odom_callback, 10)
 
-        self.dt = 1.0 / self.publish_rate
-        self.timer = self.create_timer(self.dt, self.timer_cb)
+        def odom_callback(self, msg):
+            if self.base_to_imu is None:
+                try:
+                    self.base_to_imu_transform = self.tf_buffer.lookup_transform(self.base_frame, self.imu_frame, rclpy.time.Time())
+                except Exception as e:
+                    self.get_logger().warn(f"Could not get transform from {self.base_frame} to {self.imu_frame}: {e}", once=True)
+                    return
 
-        self.initial_yaw = None
+            odom_to_imu_q = [
+                msg.pose.pose.orientation.x,
+                msg.pose.pose.orientation.y,
+                msg.pose.pose.orientation.z,
+                msg.pose.pose.orientation.w
+            ]
 
-    def cmd_vel_cb(self, msg):
-        self.vx = msg.linear.x
-        self.vy = msg.linear.y
-        self.vz = msg.linear.z
-        self.vroll = msg.angular.x
-        self.vpitch = msg.angular.y
-        self.vyaw = msg.angular.z
+            odom_to_imu_t = [
+                msg.pose.pose.position.x,
+                msg.pose.pose.position.y,
+                msg.pose.pose.position.z
+            ]
 
-    def imu_cb(self, msg):
-        q = msg.orientation
-        roll, pitch, yaw = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+            odom_to_imu_matrix = tf_transformations.quaternion_matrix(odom_to_imu_q)
+            odom_to_imu_matrix[0:3, 3] = odom_to_imu_t
 
-        if self.initial_yaw is None:
-            self.initial_yaw = yaw
+            base_to_imu_q = [
+                self.base_to_imu_transform.transform.rotation.x,
+                self.base_to_imu_transform.transform.rotation.y,
+                self.base_to_imu_transform.transform.rotation.z,
+                self.base_to_imu_transform.transform.rotation.w
+            ]
 
-        self.roll = roll
-        self.pitch = pitch
-        self.yaw = yaw - self.initial_yaw
+            base_to_imu_t = [
+                self.base_to_imu_transform.transform.translation.x,
+                self.base_to_imu_transform.transform.translation.y,
+                self.base_to_imu_transform.transform.translation.z
+            ]
 
-        self.timestamp = msg.header.stamp # hack for sim time
-        rclpy.logging.get_logger('odometry').debug(f'IMU orientation: roll={self.roll}, pitch={self.pitch}, yaw={self.yaw}')
+            base_to_imu_matrix = tf_transformations.quaternion_matrix(base_to_imu_q)
+            base_to_imu_matrix[0:3, 3] = base_to_imu_t
 
-    def timer_cb(self):
-        R = tf_transformations.euler_matrix(self.roll, self.pitch, self.yaw)[:3, :3]
-        v_robot = np.array([self.vx, self.vy, self.vz])
-        v_world = R @ v_robot
-        self.x += v_world[0] * self.dt
-        self.y += v_world[1] * self.dt
-        self.z += v_world[2] * self.dt
-        #self.roll += self.vroll * self.dt
-        #self.pitch += self.vpitch * self.dt
-        #self.yaw += self.vyaw * self.dt
+            imu_to_base_matrix = tf_transformations.inverse_matrix(base_to_imu_matrix)
+            odom_to_base_matrix = np.dot(odom_to_imu_matrix, imu_to_base_matrix)
 
-        t = TransformStamped()
-        t.header.stamp = self.timestamp
-        t.header.frame_id = self.odom_frame
-        t.child_frame_id = self.base_frame
-        t.transform.translation.x = self.x
-        t.transform.translation.y = self.y
-        t.transform.translation.z = self.z
-        q = tf_transformations.quaternion_from_euler(self.roll, self.pitch, self.yaw)
-        t.transform.rotation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
-        self.tf_broadcaster.sendTransform(t)
+            odom_to_base_t = tf_transformations.translation_from_matrix(odom_to_base_matrix)
+            odom_to_base_q = tf_transformations.quaternion_from_matrix(odom_to_base_matrix)
 
-        odom = Odometry()
-        odom.header.stamp = self.timestamp
-        odom.header.frame_id = self.odom_frame
-        odom.child_frame_id = self.base_frame
-        odom.pose.pose.position.x = self.x
-        odom.pose.pose.position.y = self.y
-        odom.pose.pose.position.z = self.z
-        q = tf_transformations.quaternion_from_euler(self.roll, self.pitch, self.yaw)
-        odom.pose.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
-        odom.twist.twist.linear = Vector3(x=self.vx, y=self.vy, z=self.vz)
-        odom.twist.twist.angular = Vector3(x=self.vroll, y=self.vpitch, z=self.vyaw)
-        self.odom_pub.publish(odom)
+            transform = TransformStamped()
+            transform.header.stamp = msg.header.stamp
+            transform.header.frame_id = self.odom_frame
+            transform.child_frame_id = self.base_frame
+            transform.transform.translation.x = odom_to_base_t[0]
+            transform.transform.translation.y = odom_to_base_t[1]
+            transform.transform.translation.z = odom_to_base_t[2]
+            transform.transform.rotation.x = odom_to_base_q[0]
+            transform.transform.rotation.y = odom_to_base_q[1]
+            transform.transform.rotation.z = odom_to_base_q[2]
+            transform.transform.rotation.w = odom_to_base_q[3]
+
+            self.tf_broadcaster.sendTransform(transform)
 
 def main(args=None):
     rclpy.init(args=args)
