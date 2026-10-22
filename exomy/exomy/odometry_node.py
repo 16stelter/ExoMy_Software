@@ -15,14 +15,15 @@ class OdometryNode(Node):
         self.declare_parameter('namespace', '')
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_link')
-        self.declare_parameter('imu_frame', 'camera_imu_optical_frame')
+        self.declare_parameter('imu_frame', 'camera_imu_frame')
         self.declare_parameter('publish_rate', 20.0)
 
         self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
         self.base_frame = self.get_parameter('base_frame').get_parameter_value().string_value
         self.imu_frame = self.get_parameter('imu_frame').get_parameter_value().string_value
 
-        self.base_to_imu = None
+        self.base_to_imu_transform = None
+        self.init_transform = None
 
         self.publish_rate = self.get_parameter('publish_rate').get_parameter_value().double_value
 
@@ -38,7 +39,7 @@ class OdometryNode(Node):
         self.odom_sub = self.create_subscription(Odometry, 'odomimu', self.odom_callback, 10)
 
     def odom_callback(self, msg):
-        if self.base_to_imu is None:
+        if self.base_to_imu_transform is None:
             try:
                 self.base_to_imu_transform = self.tf_buffer.lookup_transform(self.base_frame, self.imu_frame, rclpy.time.Time())
             except Exception as e:
@@ -82,6 +83,13 @@ class OdometryNode(Node):
 
         odom_to_base_t = tf_transformations.translation_from_matrix(odom_to_base_matrix)
         odom_to_base_q = tf_transformations.quaternion_from_matrix(odom_to_base_matrix)
+        
+        if self.init_transform is None:
+            self.init_transform = odom_to_base_t.copy()
+
+        odom_to_base_t[0] -= self.init_transform[0]
+        odom_to_base_t[1] -= self.init_transform[1]
+        odom_to_base_t[2] -= self.init_transform[2]
 
         transform = TransformStamped()
         transform.header.stamp = msg.header.stamp
