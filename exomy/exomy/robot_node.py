@@ -71,7 +71,6 @@ class RobotNode(Node):
             elif angle < -math.pi/2:
                 angle += math.pi
                 speed = -speed
-            self.get_logger().info(f"cmd_vel: linear.x={msg.linear.x}, linear.y={msg.linear.y}, angular.z={msg.angular.z} => angle={math.degrees(angle)}, speed={speed}")
             motor_speeds = [int(speed / max_linear_speed * 100)]*6
             motor_angles = [int(math.degrees(angle))]*6
         elif(msg.linear.x != 0):
@@ -106,8 +105,6 @@ class RobotNode(Node):
             motor_speeds[self.CR] = int(msg.angular.z / max_angular_speed * 100)
             motor_speeds[self.RL] = int(-msg.angular.z / max_angular_speed * 100)
             motor_speeds[self.RR] = int(msg.angular.z / max_angular_speed * 100)
-
-        self.get_logger().info(str(motor_angles))
         
         cmds.motor_speeds = motor_speeds
         cmds.motor_angles = motor_angles

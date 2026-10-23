@@ -28,7 +28,8 @@ class MotorNode(Node):
         self.motors = Motors(self.parameters)
 
         # Create watchdog timer
-        # self.watchdog_timer = self.create_timer(5.0, self.watchdog)
+        self.watchdog_timer = self.create_timer(0.5, self.watchdog)
+        self.watchdog_timer.cancel()
 
         self.get_logger().info('\t{} STARTED.'.format(self.node_name.upper()))
 
@@ -101,15 +102,15 @@ class MotorNode(Node):
         self.motors.setSteering(cmds.motor_angles)
         self.motors.setDriving(cmds.motor_speeds)
 
-        # self.watchdog_timer.cancel()
+        self.watchdog_timer.reset()
         # If this timer runs longer than the duration specified,
         # then watchdog() is called stopping the driving motors.
         # Preventing the robot to go on driving if connection is lost.
-        # self.watchdog_timer = self.create_timer(2.0, self.watchdog)
 
     def watchdog(self):
         self.get_logger().info('Watchdog fired. Stopping driving motors.')
         self.motors.stopMotors()
+        self.watchdog_timer.cancel()  # Stop the timer until next command is received
 
 
 def main(args=None):
